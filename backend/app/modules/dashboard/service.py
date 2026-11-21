@@ -64,7 +64,6 @@ def get_kpis(db: Session, disruption_id: int | None = None) -> dict:
 def get_flights(db: Session) -> list[dict]:
     flights = (
         db.query(Flight)
-        .group_by(Flight.flight_number)
         .order_by(Flight.flight_number)
         .all()
     )
