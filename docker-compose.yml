@@ -38,6 +38,7 @@ services:
     ports:
       - "5173:5173"
     environment:
+      VITE_API_TARGET: http://backend:8000
       VITE_NOVU_APPLICATION_IDENTIFIER: ${VITE_NOVU_APPLICATION_IDENTIFIER:-}
     depends_on:
       - backend
