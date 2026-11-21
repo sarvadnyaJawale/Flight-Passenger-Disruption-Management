@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.modules.cost.schemas import BaselineResponse, CostBreakdownResponse
-from app.modules.cost.service import calculate_disruption_costs, calculate_do_nothing_baseline, get_cost_breakdown
+from app.modules.cost.service import calculate_disruption_costs, calculate_do_nothing_baseline, get_cost_breakdown, rank_recovery_strategies
 
 router = APIRouter(prefix="/api/costs", tags=["costs"])
 
@@ -24,3 +24,27 @@ def get_costs(disruption_id: int, db: Session = Depends(get_db)):
 def get_baseline(disruption_id: int, db: Session = Depends(get_db)):
     baseline = calculate_do_nothing_baseline(db, disruption_id)
     return BaselineResponse(**baseline)
+
+
+@router.get("/{disruption_id}/strategies")
+def get_strategies(disruption_id: int, db: Session = Depends(get_db)):
+    from app.models.recovery import RecoveryOption
+    options = (
+        db.query(RecoveryOption)
+        .filter(RecoveryOption.disruption_id == disruption_id)
+        .all()
+    )
+    seen = {}
+    for o in options:
+        if o.flight_number not in seen:
+            seen[o.flight_number] = {
+                "flight_number": o.flight_number,
+                "origin": o.origin,
+                "destination": o.destination,
+                "departure_time": o.departure_time,
+                "arrival_time": o.arrival_time,
+                "available_seats": o.available_seats or 0,
+                "fare_difference": float(o.fare_difference or 0),
+            }
+    alternatives = list(seen.values())
+    return rank_recovery_strategies(alternatives)

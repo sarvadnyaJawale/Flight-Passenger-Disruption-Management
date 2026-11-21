@@ -125,3 +125,23 @@ def test_baseline_vs_recovery_savings():
     savings = baseline["total_liability"] - recovery["total"]
     assert savings > 0
     db.close()
+
+
+def test_rank_recovery_strategies():
+    from app.modules.cost.service import rank_recovery_strategies
+
+    alternatives = [
+        {"flight_number": "G9101", "departure_time": "14:00", "arrival_time": "15:30", "available_seats": 50, "fare_difference": 120},
+        {"flight_number": "G9102", "departure_time": "09:00", "arrival_time": "10:30", "available_seats": 10, "fare_difference": 30},
+        {"flight_number": "G9103", "departure_time": "11:00", "arrival_time": "12:30", "available_seats": 180, "fare_difference": 200},
+    ]
+
+    strategies = rank_recovery_strategies(alternatives)
+
+    assert "cheapest" in strategies
+    assert "fastest" in strategies
+    assert "best_experience" in strategies
+
+    assert strategies["cheapest"][0]["flight_number"] == "G9102"
+    assert strategies["fastest"][0]["flight_number"] == "G9102"
+    assert strategies["best_experience"][0]["flight_number"] == "G9103"

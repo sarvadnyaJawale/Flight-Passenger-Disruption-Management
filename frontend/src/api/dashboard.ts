@@ -39,8 +39,26 @@ export interface FlightInfo {
   arr_time: string;
 }
 
+export interface StrategyAlternative {
+  flight_number: string;
+  origin: string;
+  destination: string;
+  departure_time: string;
+  arrival_time: string;
+  available_seats: number;
+  fare_difference: number;
+}
+
+export interface RecoveryStrategies {
+  cheapest: StrategyAlternative[];
+  fastest: StrategyAlternative[];
+  best_experience: StrategyAlternative[];
+}
+
 export const dashboardApi = {
   kpis: (disruptionId?: number) =>
     api.get<Kpis>(`/dashboard/kpis${disruptionId ? `?disruption_id=${disruptionId}` : ''}`),
   flights: () => api.get<FlightInfo[]>('/dashboard/flights'),
+  strategies: (disruptionId: number) =>
+    api.get<RecoveryStrategies>(`/costs/${disruptionId}/strategies`),
 };

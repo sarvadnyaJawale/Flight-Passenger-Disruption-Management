@@ -99,6 +99,21 @@ def calculate_do_nothing_baseline(db: Session, disruption_id: int) -> dict:
     }
 
 
+def rank_recovery_strategies(alternatives: list[dict]) -> dict:
+    if not alternatives:
+        return {"cheapest": [], "fastest": [], "best_experience": []}
+
+    cheapest = sorted(alternatives, key=lambda a: a.get("fare_difference", 0))
+    fastest = sorted(alternatives, key=lambda a: a.get("departure_time", ""))
+    best_experience = sorted(alternatives, key=lambda a: -(a.get("available_seats", 0)))
+
+    return {
+        "cheapest": cheapest,
+        "fastest": fastest,
+        "best_experience": best_experience,
+    }
+
+
 def get_cost_breakdown(db: Session, disruption_id: int) -> dict:
     rows = (
         db.query(RecoveryCost.cost_type, func.sum(RecoveryCost.amount))

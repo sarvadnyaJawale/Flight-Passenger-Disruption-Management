@@ -45,6 +45,12 @@ export function DashboardPage() {
     enabled: !!selectedId,
   });
 
+  const { data: strategies } = useQuery({
+    queryKey: ['strategies', selectedId],
+    queryFn: () => dashboardApi.strategies(selectedId!),
+    enabled: !!selectedId,
+  });
+
   const notify = useMutation({
     mutationFn: (id: number) => notificationApi.send(id),
     onSuccess: () => {
@@ -116,6 +122,29 @@ export function DashboardPage() {
                     value={`${Math.round(((kpis.do_nothing_baseline.total_liability - kpis.cost_breakdown.total) / kpis.do_nothing_baseline.total_liability) * 100)}%`}
                     color="text-green-600" />
                 </div>
+              </div>
+            )}
+            {strategies && strategies.cheapest.length > 0 && (
+              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                {([
+                  { key: 'cheapest' as const, label: 'Lowest Cost', color: 'text-green-600', border: 'border-green-200' },
+                  { key: 'fastest' as const, label: 'Earliest Departure', color: 'text-blue-600', border: 'border-blue-200' },
+                  { key: 'best_experience' as const, label: 'Best Experience', color: 'text-purple-600', border: 'border-purple-200' },
+                ]).map(({ key, label, color, border }) => (
+                  <Card key={key} className={`border ${border}`}>
+                    <CardContent className="p-4">
+                      <h4 className={`mb-2 text-sm font-semibold ${color}`}>{label}</h4>
+                      <div className="space-y-2">
+                        {strategies[key].slice(0, 3).map((alt, i) => (
+                          <div key={alt.flight_number} className="flex items-center justify-between text-sm">
+                            <span className="font-mono">{i + 1}. {alt.flight_number}</span>
+                            <span className="text-muted-foreground">{alt.departure_time} · {alt.available_seats} seats · AED {alt.fare_difference}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
           </>
