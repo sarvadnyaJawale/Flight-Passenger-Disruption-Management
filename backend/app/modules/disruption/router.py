@@ -11,6 +11,7 @@ from app.modules.disruption.service import (
     get_flight_info,
 )
 from app.modules.passenger.service import identify_affected
+from app.modules.notification.service import send_notifications
 from app.modules.recovery.service import generate_alternatives_for_disruption
 
 router = APIRouter(prefix="/api/disruptions", tags=["disruptions"])
@@ -25,6 +26,7 @@ async def create(body: CreateDisruptionRequest, db: Session = Depends(get_db)):
 
     identify_affected(db, disruption.id)
     generate_alternatives_for_disruption(db, disruption.id)
+    notif_result = send_notifications(db, disruption.id)
 
     db.refresh(disruption)
 
@@ -34,6 +36,7 @@ async def create(body: CreateDisruptionRequest, db: Session = Depends(get_db)):
         "flight_date": str(disruption.flight_date),
         "disruption_type": disruption.disruption_type,
         "affected_pax_count": disruption.affected_pax_count,
+        "notified_count": notif_result["sent_count"],
         "flight_info": flight_info,
     })
 
