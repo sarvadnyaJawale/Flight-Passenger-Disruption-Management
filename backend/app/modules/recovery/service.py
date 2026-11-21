@@ -9,6 +9,21 @@ from app.models.flight import Flight, FlightInventory
 from app.models.recovery import RecoveryCost, RecoveryOption
 
 
+def _compute_load_factor_uplift(inventory_rows: list, pax_fare: float) -> float:
+    total_capacity = sum(r.adult_capacity or 0 for r in inventory_rows)
+    total_available = sum(r.available_seats or 0 for r in inventory_rows)
+    if total_capacity <= 0:
+        return 0.0
+    load_factor = (total_capacity - total_available) / total_capacity
+    if load_factor >= 0.85:
+        return round(pax_fare * 0.20, 2)
+    if load_factor >= 0.70:
+        return round(pax_fare * 0.10, 2)
+    if load_factor >= 0.50:
+        return round(pax_fare * 0.05, 2)
+    return 0.0
+
+
 def generate_alternatives_for_disruption(db: Session, disruption_id: int) -> int:
     disruption = db.query(Disruption).filter(Disruption.id == disruption_id).first()
     if not disruption:
@@ -17,6 +32,7 @@ def generate_alternatives_for_disruption(db: Session, disruption_id: int) -> int
     passengers = (
         db.query(DisruptionPassenger)
         .filter(DisruptionPassenger.disruption_id == disruption_id)
+        .order_by(DisruptionPassenger.priority_score.desc())
         .all()
     )
     if not passengers:
@@ -44,12 +60,12 @@ def generate_alternatives_for_disruption(db: Session, disruption_id: int) -> int
             continue
         seen_flights.add(cf.flight_number)
 
-        total_avail = (
+        inventory_rows = (
             db.query(FlightInventory)
             .filter(FlightInventory.flight_number == cf.flight_number)
             .all()
         )
-        avail_seats = sum(row.available_seats or 0 for row in total_avail)
+        avail_seats = sum(row.available_seats or 0 for row in inventory_rows)
         if avail_seats <= 0:
             continue
         alternatives.append({
@@ -59,14 +75,25 @@ def generate_alternatives_for_disruption(db: Session, disruption_id: int) -> int
             "departure_time": cf.dep_time_local,
             "arrival_time": cf.arr_time_local,
             "available_seats": avail_seats,
+            "_inventory_rows": inventory_rows,
         })
 
     alternatives.sort(key=lambda a: a["departure_time"])
     alternatives = alternatives[:3]
 
+    total_seats = sum(a["available_seats"] for a in alternatives)
+    seats_remaining = total_seats
+
     total_options = 0
+    allocated_pnrs = []
     for pax in passengers:
+        if seats_remaining <= 0:
+            break
+        pax_fare = float(pax.total_fare or 0)
         for rank, alt in enumerate(alternatives, 1):
+            fare_diff = _compute_load_factor_uplift(
+                alt["_inventory_rows"], pax_fare,
+            )
             opt = RecoveryOption(
                 disruption_id=disruption_id,
                 pnr=pax.pnr,
@@ -76,19 +103,23 @@ def generate_alternatives_for_disruption(db: Session, disruption_id: int) -> int
                 departure_time=alt["departure_time"],
                 arrival_time=alt["arrival_time"],
                 available_seats=alt["available_seats"],
-                fare_difference=0,
+                fare_difference=fare_diff,
                 rank=rank,
                 status="offered",
             )
             db.add(opt)
             total_options += 1
+        allocated_pnrs.append(pax.pnr)
+        seats_remaining -= 1
 
     db.add(AuditLog(
         disruption_id=disruption_id,
         action="alternatives_generated",
         details=json.dumps({
             "alternative_flights": [a["flight_number"] for a in alternatives],
-            "pax_count": len(passengers),
+            "pax_count": len(allocated_pnrs),
+            "total_seats": total_seats,
+            "skipped_pax": len(passengers) - len(allocated_pnrs),
         }),
         actor="system",
     ))
