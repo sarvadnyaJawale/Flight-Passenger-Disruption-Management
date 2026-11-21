@@ -153,6 +153,61 @@ def rank_recovery_strategies(alternatives: list[dict]) -> dict:
     }
 
 
+import math
+
+
+def calculate_flight_risk(
+    load_factor: float = 0.8,
+    dep_hour: int = 12,
+    route_alternatives: int = 3,
+    is_connecting_hub: bool = False,
+) -> float:
+    score = -1.5
+    score += 2.0 * min(load_factor, 1.0)
+    if dep_hour in (17, 18, 19, 20):
+        score += 0.6
+    elif dep_hour in (6, 7, 21, 22):
+        score += 0.3
+    alt_penalty = max(0, 1.0 - route_alternatives * 0.2)
+    score += alt_penalty
+    if is_connecting_hub:
+        score += 0.4
+    return round(1 / (1 + math.exp(-score)), 3)
+
+
+DELAY_COST_PER_MINUTE_AED = 35.0
+PAX_DISRUPTION_COST_AED = 140.0
+
+
+def simulate_what_if(
+    affected_pax: int = 100,
+    delay_minutes: int = 90,
+    hotel_nights: int = 1,
+    include_compensation: bool = True,
+) -> dict:
+    do_nothing = (
+        affected_pax * EU261_BASE_COMPENSATION_AED
+        + affected_pax * HOTEL_COST_AED * hotel_nights
+        + affected_pax * MEAL_COST_AED * (hotel_nights + 1)
+    )
+    recovery = (
+        affected_pax * HOTEL_COST_AED * hotel_nights
+        + affected_pax * MEAL_COST_AED
+    )
+    if include_compensation:
+        recovery += affected_pax * COMPENSATION_BASE_AED
+    recovery += delay_minutes * DELAY_COST_PER_MINUTE_AED
+
+    return {
+        "affected_pax": affected_pax,
+        "delay_minutes": delay_minutes,
+        "total_do_nothing_cost": do_nothing,
+        "total_recovery_cost": recovery,
+        "net_savings": max(0, do_nothing - recovery),
+        "savings_pct": round(max(0, (do_nothing - recovery) / do_nothing * 100), 1) if do_nothing > 0 else 0,
+    }
+
+
 def get_cost_breakdown(db: Session, disruption_id: int) -> dict:
     rows = (
         db.query(RecoveryCost.cost_type, func.sum(RecoveryCost.amount))

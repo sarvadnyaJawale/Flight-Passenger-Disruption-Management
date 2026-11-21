@@ -6,6 +6,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///./test_cost.db")
 from app.database import Base, engine, SessionLocal
 from app.models.disruption import Disruption, DisruptionPassenger
 from app.models.recovery import RecoveryCost
+from app.models.flight import Flight, FlightInventory
 from app.modules.cost.service import calculate_disruption_costs, get_cost_breakdown
 
 
@@ -176,3 +177,30 @@ def test_rank_recovery_strategies():
     assert strategies["cheapest"][0]["flight_number"] == "G9102"
     assert strategies["fastest"][0]["flight_number"] == "G9102"
     assert strategies["best_experience"][0]["flight_number"] == "G9103"
+
+
+def test_flight_risk_score():
+    from app.modules.cost.service import calculate_flight_risk
+
+    high_load = calculate_flight_risk(
+        load_factor=0.95, dep_hour=18, route_alternatives=1, is_connecting_hub=True,
+    )
+    low_load = calculate_flight_risk(
+        load_factor=0.50, dep_hour=10, route_alternatives=5, is_connecting_hub=False,
+    )
+    assert 0 <= high_load <= 1
+    assert 0 <= low_load <= 1
+    assert high_load > low_load
+
+
+def test_scenario_simulation():
+    from app.modules.cost.service import simulate_what_if
+
+    result = simulate_what_if(
+        affected_pax=150, delay_minutes=120, hotel_nights=1, include_compensation=True,
+    )
+    assert result["total_do_nothing_cost"] > 0
+    assert result["total_recovery_cost"] > 0
+    assert result["net_savings"] >= 0
+    assert result["delay_minutes"] == 120
+    assert result["affected_pax"] == 150

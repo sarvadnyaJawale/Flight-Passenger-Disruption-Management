@@ -68,6 +68,34 @@ export interface CascadeImpact {
   downstream_flights: DownstreamFlight[];
 }
 
+export interface FlightRisk {
+  flight_number: string;
+  route: string;
+  risk_score: number;
+  risk_level: string;
+  factors: {
+    load_factor: number;
+    departure_hour: number;
+    route_alternatives: number;
+    connecting_hub: boolean;
+  };
+}
+
+export interface WhatIfResult {
+  affected_pax: number;
+  delay_minutes: number;
+  total_do_nothing_cost: number;
+  total_recovery_cost: number;
+  net_savings: number;
+  savings_pct: number;
+}
+
+export interface AiAnalysis {
+  answer: string;
+  provider: string;
+  question: string;
+}
+
 export const dashboardApi = {
   kpis: (disruptionId?: number) =>
     api.get<Kpis>(`/dashboard/kpis${disruptionId ? `?disruption_id=${disruptionId}` : ''}`),
@@ -76,4 +104,10 @@ export const dashboardApi = {
     api.get<RecoveryStrategies>(`/costs/${disruptionId}/strategies`),
   cascade: (disruptionId: number) =>
     api.get<CascadeImpact>(`/costs/${disruptionId}/cascade`),
+  flightRisk: (flightNumber: string) =>
+    api.get<FlightRisk>(`/costs/risk/${flightNumber}`),
+  simulate: (params: { affected_pax: number; delay_minutes: number; hotel_nights: number; include_compensation: boolean }) =>
+    api.post<WhatIfResult>(`/costs/simulate?affected_pax=${params.affected_pax}&delay_minutes=${params.delay_minutes}&hotel_nights=${params.hotel_nights}&include_compensation=${params.include_compensation}`, {}),
+  aiAnalyze: (disruptionId: number) =>
+    api.post<AiAnalysis>(`/costs/ai/analyze?disruption_id=${disruptionId}`, {}),
 };
