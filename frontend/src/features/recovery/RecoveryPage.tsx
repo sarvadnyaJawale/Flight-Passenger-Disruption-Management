@@ -137,8 +137,8 @@ export function RecoveryPage() {
                     </div>
                     {opt.fare_difference !== 0 && (
                       <p className="mt-2 text-sm text-orange-600">
-                        Fare difference: ${Math.abs(opt.fare_difference)}
-                        {opt.fare_difference > 0 ? ' surcharge' : ' refund'}
+                        Fare difference: AED {Math.abs(opt.fare_difference).toFixed(2)}
+                        {opt.fare_difference > 0 ? ' surcharge' : ' credit'}
                       </p>
                     )}
                     <Button
