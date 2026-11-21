@@ -1,7 +1,8 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models.disruption import DisruptionPassenger
+from app.models.disruption import Disruption, DisruptionPassenger
+from app.models.flight import Flight
 from app.models.recovery import RecoveryCost
 
 HOTEL_COST_AED = 350.0
@@ -96,6 +97,44 @@ def calculate_do_nothing_baseline(db: Session, disruption_id: int) -> dict:
         "hotel_cost": hotel,
         "meal_cost": meal,
         "total_liability": eu261 + hotel + meal,
+    }
+
+
+def calculate_cascade_impact(db: Session, flight_number: str) -> dict:
+    cancelled = db.query(Flight).filter(Flight.flight_number == flight_number).first()
+    if not cancelled:
+        return {"cancelled_flight": flight_number, "route": None, "downstream_flights": []}
+
+    dest = cancelled.destination
+    downstream_flights = (
+        db.query(Flight)
+        .filter(
+            Flight.origin == dest,
+            Flight.flight_number != flight_number,
+        )
+        .all()
+    )
+
+    seen = set()
+    downstream = []
+    for f in downstream_flights:
+        if f.flight_number in seen:
+            continue
+        seen.add(f.flight_number)
+        downstream.append({
+            "flight_number": f.flight_number,
+            "origin": f.origin,
+            "destination": f.destination,
+            "departure_time": f.dep_time_local,
+            "arrival_time": f.arr_time_local,
+        })
+
+    downstream.sort(key=lambda f: f["departure_time"])
+
+    return {
+        "cancelled_flight": flight_number,
+        "route": f"{cancelled.origin}-{cancelled.destination}",
+        "downstream_flights": downstream,
     }
 
 

@@ -51,6 +51,12 @@ export function DashboardPage() {
     enabled: !!selectedId,
   });
 
+  const { data: cascade } = useQuery({
+    queryKey: ['cascade', selectedId],
+    queryFn: () => dashboardApi.cascade(selectedId!),
+    enabled: !!selectedId,
+  });
+
   const notify = useMutation({
     mutationFn: (id: number) => notificationApi.send(id),
     onSuccess: () => {
@@ -146,6 +152,30 @@ export function DashboardPage() {
                   </Card>
                 ))}
               </div>
+            )}
+            {cascade && cascade.downstream_flights.length > 0 && (
+              <Card className="mt-4 border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+                <CardContent className="p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="text-lg">⚠️</span>
+                    <h4 className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                      Cascade Impact — {cascade.downstream_flights.length} downstream flight{cascade.downstream_flights.length > 1 ? 's' : ''} at risk
+                    </h4>
+                  </div>
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    Flight {cascade.cancelled_flight} ({cascade.route}) cancellation may disrupt aircraft rotation for these departures:
+                  </p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {cascade.downstream_flights.map((f) => (
+                      <div key={f.flight_number} className="flex items-center justify-between rounded-md border border-amber-200 bg-white/80 px-3 py-2 text-sm dark:bg-amber-950/30">
+                        <span className="font-mono font-semibold">{f.flight_number}</span>
+                        <span className="text-muted-foreground">{f.origin} → {f.destination}</span>
+                        <span className="text-xs text-amber-600">{f.departure_time}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </>
         )}

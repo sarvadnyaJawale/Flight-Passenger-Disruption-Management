@@ -127,6 +127,37 @@ def test_baseline_vs_recovery_savings():
     db.close()
 
 
+def test_cascade_impact():
+    from app.modules.cost.service import calculate_cascade_impact
+
+    db = SessionLocal()
+    from app.models.flight import Flight
+    db.add(Flight(flight_number="G9027", origin="SHJ", destination="DOH",
+                  dep_time_local="08:00", arr_time_local="09:00",
+                  frequency="daily", schedule_start=date(2024, 1, 1), schedule_end=date(2024, 12, 31)))
+    db.add(Flight(flight_number="G9028", origin="DOH", destination="SHJ",
+                  dep_time_local="11:00", arr_time_local="12:00",
+                  frequency="daily", schedule_start=date(2024, 1, 1), schedule_end=date(2024, 12, 31)))
+    db.add(Flight(flight_number="G9029", origin="DOH", destination="KWI",
+                  dep_time_local="14:00", arr_time_local="15:30",
+                  frequency="daily", schedule_start=date(2024, 1, 1), schedule_end=date(2024, 12, 31)))
+    db.add(Flight(flight_number="G9050", origin="SHJ", destination="BAH",
+                  dep_time_local="10:00", arr_time_local="11:00",
+                  frequency="daily", schedule_start=date(2024, 1, 1), schedule_end=date(2024, 12, 31)))
+    db.commit()
+
+    cascade = calculate_cascade_impact(db, "G9027")
+
+    assert cascade["cancelled_flight"] == "G9027"
+    assert cascade["route"] == "SHJ-DOH"
+    assert len(cascade["downstream_flights"]) >= 2
+    flight_numbers = [f["flight_number"] for f in cascade["downstream_flights"]]
+    assert "G9028" in flight_numbers  # DOH→SHJ departs from DOH
+    assert "G9029" in flight_numbers  # DOH→KWI departs from DOH
+    assert "G9050" not in flight_numbers  # SHJ→BAH, doesn't depart from DOH
+    db.close()
+
+
 def test_rank_recovery_strategies():
     from app.modules.cost.service import rank_recovery_strategies
 

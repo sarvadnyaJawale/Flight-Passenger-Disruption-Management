@@ -55,10 +55,25 @@ export interface RecoveryStrategies {
   best_experience: StrategyAlternative[];
 }
 
+export interface DownstreamFlight {
+  flight_number: string;
+  origin: string;
+  destination: string;
+  departure_time: string;
+}
+
+export interface CascadeImpact {
+  cancelled_flight: string | null;
+  route: string | null;
+  downstream_flights: DownstreamFlight[];
+}
+
 export const dashboardApi = {
   kpis: (disruptionId?: number) =>
     api.get<Kpis>(`/dashboard/kpis${disruptionId ? `?disruption_id=${disruptionId}` : ''}`),
   flights: () => api.get<FlightInfo[]>('/dashboard/flights'),
   strategies: (disruptionId: number) =>
     api.get<RecoveryStrategies>(`/costs/${disruptionId}/strategies`),
+  cascade: (disruptionId: number) =>
+    api.get<CascadeImpact>(`/costs/${disruptionId}/cascade`),
 };

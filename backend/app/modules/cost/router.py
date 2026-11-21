@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.modules.cost.schemas import BaselineResponse, CostBreakdownResponse
-from app.modules.cost.service import calculate_disruption_costs, calculate_do_nothing_baseline, get_cost_breakdown, rank_recovery_strategies
+from app.modules.cost.service import calculate_cascade_impact, calculate_disruption_costs, calculate_do_nothing_baseline, get_cost_breakdown, rank_recovery_strategies
 
 router = APIRouter(prefix="/api/costs", tags=["costs"])
 
@@ -48,3 +48,12 @@ def get_strategies(disruption_id: int, db: Session = Depends(get_db)):
             }
     alternatives = list(seen.values())
     return rank_recovery_strategies(alternatives)
+
+
+@router.get("/{disruption_id}/cascade")
+def get_cascade(disruption_id: int, db: Session = Depends(get_db)):
+    from app.models.disruption import Disruption
+    disruption = db.query(Disruption).filter(Disruption.id == disruption_id).first()
+    if not disruption:
+        return {"cancelled_flight": None, "route": None, "downstream_flights": []}
+    return calculate_cascade_impact(db, disruption.flight_number)
