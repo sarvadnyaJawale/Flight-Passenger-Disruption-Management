@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { dashboardApi } from '../../api/dashboard';
 import { disruptionApi, type Disruption } from '../../api/disruptions';
 import { notificationApi } from '../../api/notifications';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { KpiCard } from '../shared/KpiCard';
+import { NotificationInbox } from '../shared/NotificationInbox';
 import { StatusBadge } from '../shared/StatusBadge';
 import { PassengerTable } from './PassengerTable';
 import { TriggerModal } from './TriggerModal';
@@ -50,29 +54,26 @@ export function DashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-600">
-              <span className="text-sm font-bold text-white">G9</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-destructive">
+              <span className="text-sm font-bold text-destructive-foreground">G9</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">OCC Recovery Dashboard</h1>
-              <p className="text-xs text-gray-500">Air Arabia Disruption Management</p>
+              <h1 className="text-lg font-bold">OCC Recovery Dashboard</h1>
+              <p className="text-xs text-muted-foreground">Air Arabia Disruption Management</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`flex items-center gap-1.5 text-xs ${connected ? 'text-green-600' : 'text-red-500'}`}>
-              <span className={`h-2 w-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <NotificationInbox />
+            <Badge variant={connected ? 'default' : 'destructive'}>
               {connected ? 'Live' : 'Disconnected'}
-            </span>
-            <button
-              onClick={() => setModalOpen(true)}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-            >
+            </Badge>
+            <Button variant="destructive" onClick={() => setModalOpen(true)}>
               Trigger Cancellation
-            </button>
+            </Button>
           </div>
         </div>
       </header>
@@ -80,7 +81,7 @@ export function DashboardPage() {
       <main className="mx-auto max-w-7xl px-4 py-6">
         {kpis && (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            <KpiCard label="Affected PAX" value={kpis.affected_pax_count} color="text-red-600" />
+            <KpiCard label="Affected PAX" value={kpis.affected_pax_count} color="text-destructive" />
             <KpiCard label="Recovered" value={kpis.recovered_pax_count} color="text-green-600"
               sub={`${kpis.self_service_rate}% self-service`} />
             <KpiCard label="Self-Served" value={kpis.self_service_count} color="text-blue-600" />
@@ -95,64 +96,66 @@ export function DashboardPage() {
 
         <div className="mt-6 grid gap-6 lg:grid-cols-4">
           <div className="lg:col-span-1">
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
-              <h2 className="text-sm font-semibold text-gray-900">Disruption Events</h2>
-              <div className="mt-3 space-y-2">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Disruption Events</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
                 {(disruptions || []).map((d: Disruption) => (
                   <button
                     key={d.id}
                     onClick={() => setSelectedId(d.id)}
-                    className={`w-full rounded-lg border p-3 text-left text-sm transition-colors ${
+                    className={`w-full rounded-md border p-3 text-left text-sm transition-colors ${
                       selectedId === d.id
-                        ? 'border-red-400 bg-red-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-destructive bg-destructive/5'
+                        : 'border-border hover:border-primary/30'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-semibold">{d.flight_number}</span>
                       <StatusBadge status={d.disruption_type} />
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">{d.flight_date} &middot; {d.reason}</p>
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-muted-foreground">{d.flight_date} &middot; {d.reason}</p>
+                    <p className="mt-1 text-xs text-muted-foreground/70">
                       {d.affected_pax_count} PAX &middot; {d.recovered_pax_count} recovered
                     </p>
                   </button>
                 ))}
                 {(!disruptions || disruptions.length === 0) && (
-                  <p className="py-4 text-center text-xs text-gray-400">
+                  <p className="py-4 text-center text-xs text-muted-foreground">
                     No disruptions yet. Trigger one to start.
                   </p>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="lg:col-span-3">
-            <div className="rounded-xl border border-gray-200 bg-white p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-900">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="text-sm">
                   Affected Passengers {selectedId ? `(Event #${selectedId})` : ''}
-                </h2>
+                </CardTitle>
                 {selectedId && (
-                  <button
+                  <Button
+                    size="sm"
                     onClick={() => notify.mutate(selectedId)}
                     disabled={notify.isPending}
-                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                   >
                     {notify.isPending ? 'Sending...' : 'Send Notifications'}
-                  </button>
+                  </Button>
                 )}
-              </div>
-              <div className="mt-4">
+              </CardHeader>
+              <CardContent>
                 {selectedId && passengers ? (
                   <PassengerTable passengers={passengers} />
                 ) : (
-                  <p className="py-12 text-center text-sm text-gray-400">
+                  <p className="py-12 text-center text-sm text-muted-foreground">
                     Select a disruption event to view affected passengers
                   </p>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>

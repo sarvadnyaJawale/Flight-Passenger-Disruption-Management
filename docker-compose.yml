@@ -1,0 +1,46 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: disruption
+      POSTGRES_PASSWORD: disruption
+      POSTGRES_DB: disruption
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U disruption"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://disruption:disruption@db:5432/disruption
+      RECOVERY_JWT_SECRET: ${RECOVERY_JWT_SECRET:-hackathon-secret-change-me}
+      FRONTEND_URL: http://localhost:5173
+      NOVU_API_KEY: ${NOVU_API_KEY:-}
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_NOVU_APPLICATION_IDENTIFIER: ${VITE_NOVU_APPLICATION_IDENTIFIER:-}
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
