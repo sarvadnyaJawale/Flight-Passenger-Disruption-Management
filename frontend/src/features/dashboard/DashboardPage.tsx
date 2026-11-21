@@ -102,6 +102,22 @@ export function DashboardPage() {
                 <KpiCard label="Refunds" value={`AED ${kpis.cost_breakdown.refund.toLocaleString()}`} color="text-rose-600" />
               </div>
             )}
+            {kpis.do_nothing_baseline && kpis.cost_breakdown && (
+              <div className="mt-4 rounded-lg border border-dashed border-destructive/30 bg-destructive/5 p-4">
+                <h3 className="mb-3 text-sm font-semibold text-destructive">If No Action Taken</h3>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                  <KpiCard label="Stranded PAX" value={kpis.do_nothing_baseline.stranded_pax} color="text-destructive" />
+                  <KpiCard label="EU261 Liability" value={`AED ${kpis.do_nothing_baseline.eu261_compensation.toLocaleString()}`} color="text-destructive" />
+                  <KpiCard label="Total Liability" value={`AED ${kpis.do_nothing_baseline.total_liability.toLocaleString()}`} color="text-destructive" />
+                  <KpiCard label="Recovery Saved"
+                    value={`AED ${(kpis.do_nothing_baseline.total_liability - kpis.cost_breakdown.total).toLocaleString()}`}
+                    color="text-green-600" />
+                  <KpiCard label="Cost Reduction"
+                    value={`${Math.round(((kpis.do_nothing_baseline.total_liability - kpis.cost_breakdown.total) / kpis.do_nothing_baseline.total_liability) * 100)}%`}
+                    color="text-green-600" />
+                </div>
+              </div>
+            )}
           </>
         )}
 

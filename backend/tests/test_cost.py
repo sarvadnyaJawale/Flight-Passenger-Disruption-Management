@@ -93,3 +93,35 @@ def test_get_cost_breakdown():
     assert breakdown["compensation"] > 0
     assert breakdown["total"] == breakdown["hotel"] + breakdown["meal"] + breakdown["compensation"] + breakdown.get("rebooking", 0) + breakdown.get("refund", 0)
     db.close()
+
+
+def test_do_nothing_baseline():
+    from app.modules.cost.service import calculate_do_nothing_baseline
+
+    db = SessionLocal()
+    d_id = db.query(Disruption).first().id
+
+    baseline = calculate_do_nothing_baseline(db, d_id)
+
+    assert baseline["stranded_pax"] == 3
+    assert baseline["eu261_compensation"] > 0
+    assert baseline["hotel_cost"] == 3 * 350
+    assert baseline["meal_cost"] == 3 * 50
+    assert baseline["total_liability"] > 0
+    assert baseline["total_liability"] > baseline["eu261_compensation"]
+    db.close()
+
+
+def test_baseline_vs_recovery_savings():
+    from app.modules.cost.service import calculate_do_nothing_baseline
+
+    db = SessionLocal()
+    d_id = db.query(Disruption).first().id
+
+    baseline = calculate_do_nothing_baseline(db, d_id)
+    recovery = get_cost_breakdown(db, d_id)
+
+    assert baseline["total_liability"] > recovery["total"]
+    savings = baseline["total_liability"] - recovery["total"]
+    assert savings > 0
+    db.close()

@@ -63,6 +63,42 @@ def calculate_disruption_costs(db: Session, disruption_id: int) -> int:
     return count
 
 
+EU261_BASE_COMPENSATION_AED = 1000.0
+EU261_CONNECTING_MULTIPLIER = 1.5
+
+
+def calculate_do_nothing_baseline(db: Session, disruption_id: int) -> dict:
+    passengers = (
+        db.query(DisruptionPassenger)
+        .filter(DisruptionPassenger.disruption_id == disruption_id)
+        .all()
+    )
+    if not passengers:
+        return {
+            "stranded_pax": 0, "eu261_compensation": 0,
+            "hotel_cost": 0, "meal_cost": 0, "total_liability": 0,
+        }
+
+    pax_count = len(passengers)
+    eu261 = 0.0
+    for pax in passengers:
+        base = EU261_BASE_COMPENSATION_AED
+        if pax.is_connecting:
+            base *= EU261_CONNECTING_MULTIPLIER
+        eu261 += base
+
+    hotel = pax_count * HOTEL_COST_AED
+    meal = pax_count * MEAL_COST_AED
+
+    return {
+        "stranded_pax": pax_count,
+        "eu261_compensation": eu261,
+        "hotel_cost": hotel,
+        "meal_cost": meal,
+        "total_liability": eu261 + hotel + meal,
+    }
+
+
 def get_cost_breakdown(db: Session, disruption_id: int) -> dict:
     rows = (
         db.query(RecoveryCost.cost_type, func.sum(RecoveryCost.amount))

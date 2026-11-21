@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.disruption import Disruption, DisruptionPassenger
 from app.models.flight import Flight
 from app.models.recovery import RecoveryCost
-from app.modules.cost.service import get_cost_breakdown
+from app.modules.cost.service import calculate_do_nothing_baseline, get_cost_breakdown
 
 
 def get_kpis(db: Session, disruption_id: int | None = None) -> dict:
@@ -44,6 +44,7 @@ def get_kpis(db: Session, disruption_id: int | None = None) -> dict:
     total_cost = cost_q.scalar() or 0
 
     breakdown = get_cost_breakdown(db, disruption_id) if disruption_id else None
+    baseline = calculate_do_nothing_baseline(db, disruption_id) if disruption_id else None
 
     return {
         "affected_pax_count": total,
@@ -54,6 +55,7 @@ def get_kpis(db: Session, disruption_id: int | None = None) -> dict:
         "avg_recovery_time_seconds": round(avg_time, 1) if avg_time else None,
         "total_recovery_cost": float(total_cost),
         "cost_breakdown": breakdown,
+        "do_nothing_baseline": baseline,
         "pending_count": pending,
         "notified_count": notified,
     }

@@ -9,6 +9,14 @@ export interface CostBreakdown {
   total: number;
 }
 
+export interface DoNothingBaseline {
+  stranded_pax: number;
+  eu261_compensation: number;
+  hotel_cost: number;
+  meal_cost: number;
+  total_liability: number;
+}
+
 export interface Kpis {
   affected_pax_count: number;
   recovered_pax_count: number;
@@ -18,6 +26,7 @@ export interface Kpis {
   avg_recovery_time_seconds: number | null;
   total_recovery_cost: number;
   cost_breakdown: CostBreakdown | null;
+  do_nothing_baseline: DoNothingBaseline | null;
   pending_count: number;
   notified_count: number;
 }

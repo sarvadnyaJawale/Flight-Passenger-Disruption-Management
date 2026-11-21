@@ -10,6 +10,14 @@ class CostBreakdown(BaseModel):
     total: float = 0
 
 
+class DoNothingBaseline(BaseModel):
+    stranded_pax: int = 0
+    eu261_compensation: float = 0
+    hotel_cost: float = 0
+    meal_cost: float = 0
+    total_liability: float = 0
+
+
 class KpiResponse(BaseModel):
     affected_pax_count: int
     recovered_pax_count: int
@@ -19,6 +27,7 @@ class KpiResponse(BaseModel):
     avg_recovery_time_seconds: float | None
     total_recovery_cost: float
     cost_breakdown: CostBreakdown | None = None
+    do_nothing_baseline: DoNothingBaseline | None = None
     pending_count: int
     notified_count: int
 
