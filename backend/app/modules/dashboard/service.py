@@ -1,6 +1,7 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.models.booking import Booking
 from app.models.disruption import Disruption, DisruptionPassenger
 from app.models.flight import Flight
 from app.models.recovery import RecoveryCost
@@ -62,12 +63,18 @@ def get_kpis(db: Session, disruption_id: int | None = None) -> dict:
 
 
 def get_flights(db: Session) -> list[dict]:
+    booked_flights = {
+        r[0]
+        for r in db.query(Booking.flight_number).distinct().all()
+    }
+
     flights = (
         db.query(Flight)
+        .filter(Flight.flight_number.in_(booked_flights))
         .order_by(Flight.flight_number)
         .all()
     )
-    seen = set()
+    seen: set[str] = set()
     result = []
     for f in flights:
         if f.flight_number in seen:
