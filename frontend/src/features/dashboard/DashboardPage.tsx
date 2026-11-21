@@ -80,18 +80,29 @@ export function DashboardPage() {
 
       <main className="mx-auto max-w-7xl px-4 py-6">
         {kpis && (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            <KpiCard label="Affected PAX" value={kpis.affected_pax_count} color="text-destructive" />
-            <KpiCard label="Recovered" value={kpis.recovered_pax_count} color="text-green-600"
-              sub={`${kpis.self_service_rate}% self-service`} />
-            <KpiCard label="Self-Served" value={kpis.self_service_count} color="text-blue-600" />
-            <KpiCard label="Pending" value={kpis.pending_count + kpis.notified_count}
-              sub={`${kpis.notified_count} notified`} />
-            <KpiCard label="Recovery Cost" value={`$${kpis.total_recovery_cost.toLocaleString()}`}
-              sub={kpis.avg_recovery_time_seconds
-                ? `Avg ${Math.round(kpis.avg_recovery_time_seconds / 60)}m recovery`
-                : undefined} />
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              <KpiCard label="Affected PAX" value={kpis.affected_pax_count} color="text-destructive" />
+              <KpiCard label="Recovered" value={kpis.recovered_pax_count} color="text-green-600"
+                sub={`${kpis.self_service_rate}% self-service`} />
+              <KpiCard label="Self-Served" value={kpis.self_service_count} color="text-blue-600" />
+              <KpiCard label="Pending" value={kpis.pending_count + kpis.notified_count}
+                sub={`${kpis.notified_count} notified`} />
+              <KpiCard label="Total Cost" value={`AED ${kpis.total_recovery_cost.toLocaleString()}`}
+                sub={kpis.avg_recovery_time_seconds
+                  ? `Avg ${Math.round(kpis.avg_recovery_time_seconds / 60)}m recovery`
+                  : undefined} />
+            </div>
+            {kpis.cost_breakdown && (
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <KpiCard label="Hotel" value={`AED ${kpis.cost_breakdown.hotel.toLocaleString()}`} color="text-orange-600" />
+                <KpiCard label="Meals" value={`AED ${kpis.cost_breakdown.meal.toLocaleString()}`} color="text-amber-600" />
+                <KpiCard label="Compensation" value={`AED ${kpis.cost_breakdown.compensation.toLocaleString()}`} color="text-purple-600" />
+                <KpiCard label="Rebooking" value={`AED ${kpis.cost_breakdown.rebooking.toLocaleString()}`} color="text-sky-600" />
+                <KpiCard label="Refunds" value={`AED ${kpis.cost_breakdown.refund.toLocaleString()}`} color="text-rose-600" />
+              </div>
+            )}
+          </>
         )}
 
         <div className="mt-6 grid gap-6 lg:grid-cols-4">

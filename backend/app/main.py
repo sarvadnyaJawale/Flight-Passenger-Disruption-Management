@@ -8,6 +8,7 @@ from app.modules.dashboard.router import router as dashboard_router
 from app.modules.disruption.router import router as disruption_router
 from app.modules.notification.router import router as notification_router
 from app.modules.passenger.router import router as passenger_router
+from app.modules.cost.router import router as cost_router
 from app.modules.recovery.router import router as recovery_router
 
 app = FastAPI(title="Air Arabia Disruption Management", version="1.0.0")
@@ -25,6 +26,7 @@ app.include_router(passenger_router)
 app.include_router(recovery_router)
 app.include_router(notification_router)
 app.include_router(dashboard_router)
+app.include_router(cost_router)
 
 
 @app.on_event("startup")

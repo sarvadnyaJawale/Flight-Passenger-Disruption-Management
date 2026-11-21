@@ -1,5 +1,14 @@
 import { api } from './client';
 
+export interface CostBreakdown {
+  hotel: number;
+  meal: number;
+  compensation: number;
+  rebooking: number;
+  refund: number;
+  total: number;
+}
+
 export interface Kpis {
   affected_pax_count: number;
   recovered_pax_count: number;
@@ -8,6 +17,7 @@ export interface Kpis {
   self_service_rate: number;
   avg_recovery_time_seconds: number | null;
   total_recovery_cost: number;
+  cost_breakdown: CostBreakdown | null;
   pending_count: number;
   notified_count: number;
 }
