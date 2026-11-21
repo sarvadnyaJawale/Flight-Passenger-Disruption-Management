@@ -57,6 +57,21 @@ def create_disruption(
         if m.pax_name:
             loyalty_map[m.pax_name.strip().upper()] = m.tier
 
+    affected_pnrs = {b.pnr for b in bookings}
+    other_segments = (
+        db.query(Booking)
+        .filter(
+            Booking.pnr.in_(affected_pnrs),
+            Booking.flight_number != flight_number,
+            Booking.seg_status != "CNX",
+        )
+        .all()
+    )
+    connecting_map: dict[str, str] = {}
+    for seg in other_segments:
+        if seg.pnr not in connecting_map:
+            connecting_map[seg.pnr] = seg.flight_number
+
     seen_pnrs: set[str] = set()
     pax_count = 0
     for b in bookings:
@@ -65,7 +80,7 @@ def create_disruption(
         seen_pnrs.add(b.pnr)
 
         full_name = f"{b.first_name or ''} {b.last_name or ''}".strip()
-        is_conn = b.is_connecting == "Y"
+        has_connection = b.pnr in connecting_map
         loyalty_tier = loyalty_map.get(full_name.upper())
         fare = float(b.total_fare or 0)
 
@@ -74,11 +89,13 @@ def create_disruption(
             pnr=b.pnr,
             passenger_name=full_name,
             pax_type=b.pax_type_code,
-            is_connecting=1 if is_conn else 0,
+            is_connecting=1 if has_connection else 0,
+            is_misconnect=1 if has_connection else 0,
+            connecting_flight=connecting_map.get(b.pnr),
             original_segment=b.segment_code,
             total_fare=fare,
             loyalty_tier=loyalty_tier,
-            priority_score=_compute_priority(is_conn, loyalty_tier, fare),
+            priority_score=_compute_priority(has_connection, loyalty_tier, fare),
             email=b.email,
             phone=b.phone,
             recovery_status="pending",
