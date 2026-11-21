@@ -17,8 +17,10 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
-    import app.models  # noqa: F401 — registers all models
+    import app.models  # noqa: F401
     Base.metadata.create_all(bind=engine)
+    from app.data_loader.loader import load_all
+    load_all(settings.DATA_DIR)
 
 
 @app.get("/api/health")

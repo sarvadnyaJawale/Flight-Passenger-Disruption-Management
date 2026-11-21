@@ -7,7 +7,7 @@ class LoyaltyMember(Base):
     __tablename__ = "loyalty"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    loyalty_id = Column(String, unique=True, nullable=False)
+    loyalty_id = Column(String, index=True, nullable=False)
     pax_type = Column(String)
     pax_name = Column(String)
     family_or_ind = Column(String)
